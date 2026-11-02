@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StudyCrawler · 学习资料下载器</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232b45c8'/%3E%3Cpath d='M16 7v13m0 0l-5-5m5 5l5-5M9 25h14' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="/" title="回到首页">
+      <span class="mark"><svg class="i" viewBox="0 0 24 24"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg></span>
+      <span class="brand-t">StudyCrawler</span>
+      <span class="brand-s">学习资料下载器</span>
+    </a>
+    <div class="out">
+      <span class="out-l">保存到</span>
+      <button id="outPath" class="out-p" title="点击更改保存位置">…</button>
+      <button id="outOpen" class="btn ghost sm" title="在访达中打开">
+        <svg class="i" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        <span class="hide-s">打开</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1>把课程网站上的资料，一次拿全。</h1>
+    <p class="lede">输入课程主页或资料页的网址，扫描出所有能下载的课件、讲义、习题和压缩包——包括 JS 动态加载、藏在按钮后面的。勾选即可下载。</p>
+
+    <form id="scanForm" class="bar" autocomplete="off">
+      <svg class="i bar-i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg>
+      <input id="url" name="url" type="text" inputmode="url" spellcheck="false"
+             placeholder="https://example.edu/course/ds/" aria-label="网址">
+      <button id="scanBtn" class="btn primary lg" type="submit">扫描</button>
+    </form>
+    <div id="loginBar" class="login-bar"></div>
+
+    <div class="opts">
+      <div class="opt">
+        <span class="opt-l">深度</span>
+        <div class="seg" id="segDepth" role="radiogroup" aria-label="爬取深度">
+          <button type="button" data-v="0" title="只看这一页上的链接">本页</button>
+          <button type="button" data-v="1" title="再进入本页链接到的子页面">1 层</button>
+          <button type="button" data-v="2">2 层</button>
+          <button type="button" data-v="3">3 层</button>
+          <button type="button" data-v="all" title="不限层数，并读取网站的 sitemap.xml；仍受「更多选项 → 最多扫描网页数」限制（填 0 不限）">全站</button>
+        </div>
+      </div>
+      <div class="opt">
+        <span class="opt-l">动态网页</span>
+        <div class="seg" id="segJs" role="radiogroup" aria-label="JS 渲染">
+          <button type="button" data-v="auto" title="页面看起来是 JS 生成的才用浏览器渲染">自动</button>
+          <button type="button" data-v="on" title="每个网页都用浏览器渲染（慢，但最全）">总是</button>
+          <button type="button" data-v="off" title="只解析 HTML 源码（最快）">关闭</button>
+        </div>
+      </div>
+      <button type="button" id="moreBtn" class="btn ghost sm more" aria-expanded="false" aria-controls="more">
+        <svg class="i" viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+        更多选项<span id="moreCount" class="count" hidden></span>
+      </button>
+    </div>
+    <div class="types">
+      <span class="opt-l">类型</span>
+      <div id="kindChips" class="chips"></div>
+    </div>
+
+    <div id="more" class="more-panel" hidden>
+      <div class="grid">
+        <label class="fld"><span>只要包含这些词的文件</span>
+          <input id="oInclude" type="text" placeholder="课件 习题 实验（空格分隔，任一即可）"></label>
+        <label class="fld"><span>排除包含这些词的</span>
+          <input id="oExclude" type="text" placeholder="往年 答案"></label>
+        <div class="fld"><span>网页范围</span>
+          <div class="seg" id="segScope">
+            <button type="button" data-v="host">整个站点</button>
+            <button type="button" data-v="prefix">只在当前目录下</button>
+          </div></div>
+        <label class="fld"><span>其他扩展名</span>
+          <input id="oExtra" type="text" placeholder="例如 mp4, caj, nb"></label>
+        <label class="fld short"><span>最多扫描网页数（0 = 不限）</span><input id="oMaxPages" type="number" min="0" step="1"></label>
+        <label class="fld short"><span>同一站点请求间隔（秒）</span><input id="oDelay" type="number" min="0" step="0.5"></label>
+        <label class="fld short"><span>单个文件上限</span><input id="oMaxSize" type="text" placeholder="不限，例如 500M"></label>
+        <label class="fld short"><span>代理</span><input id="oProxy" type="text" placeholder="http://127.0.0.1:7890"></label>
+        <div class="fld wide checks">
+          <label class="ck-l"><input id="oClick" type="checkbox"> 点击页面上的「下载」按钮，捕获按钮背后的文件 <em>（需开动态网页；不会点删除、提交、支付）</em></label>
+          <label class="ck-l"><input id="oProbe" type="checkbox"> 扫描时查询文件大小和真实文件名 <em>（每个文件多一次请求，较慢）</em></label>
+          <label class="ck-l"><input id="oInsecure" type="checkbox"> 忽略 HTTPS 证书错误 <em>（仅用于校内自签证书的网站）</em></label>
+        </div>
+        <label class="fld wide"><span>Cookie（需要登录才能看的网站）
+          <button type="button" id="cookieFileBtn" class="link">导入 cookies.txt</button>
+          <input id="cookieFile" type="file" accept=".txt,text/plain" hidden></span>
+          <textarea id="oCookie" rows="2" placeholder="从浏览器开发者工具复制：sid=xxx; token=yyy，或粘贴浏览器扩展导出的 cookies.txt。只发给你输入的网站，不会保存。"></textarea></label>
+        <label class="fld wide"><span>自定义请求头（每行一个）</span>
+          <textarea id="oHeaders" rows="2" placeholder="Authorization: Bearer xxx"></textarea></label>
+      </div>
+      <div class="more-foot">
+        <span class="hint">遵守 robots.txt，同一站点默认每秒最多 1 个请求。</span>
+        <button type="button" id="resetOpts" class="link">恢复默认</button>
+      </div>
+    </div>
+
+    <div id="recent" class="recent" hidden></div>
+  </section>
+
+  <section id="status" class="card status" hidden>
+    <div class="st-bar"><i></i></div>
+    <div class="st-main">
+      <span id="stDot" class="dot"></span>
+      <div class="st-txt">
+        <div id="stTitle" class="st-title"></div>
+        <div id="stMeta" class="st-meta"></div>
+      </div>
+      <div class="st-act">
+        <button id="stopScan" class="btn sm" hidden>
+          <svg class="i" viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="1.5"/></svg>停止</button>
+        <button id="rescan" class="btn sm" hidden>
+          <svg class="i" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>重新扫描</button>
+      </div>
+    </div>
+    <div class="st-tabs">
+      <details id="logBox"><summary>运行日志 <span id="logCount" class="muted"></span></summary><pre id="log"></pre></details>
+      <details id="pagesBox"><summary>扫描过的网页 <span id="pageCount" class="muted"></span></summary><ol id="pages" class="plist"></ol></details>
+      <details id="apiBox"><summary>嗅到的接口 <span id="apiCount" class="muted"></span></summary>
+        <div id="auth" class="auth" hidden></div><ol id="apis" class="plist"></ol></details>
+    </div>
+  </section>
+
+  <section id="results" class="card results" hidden>
+    <div class="res-head">
+      <label class="ck all" title="全选当前列表"><input id="selAll" type="checkbox"></label>
+      <div class="filter">
+        <svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
+        <input id="q" type="search" placeholder="筛选文件名、链接文字…" aria-label="筛选">
+      </div>
+      <div class="views">
+        <select id="groupBy" aria-label="分组">
+          <option value="page">按来源网页</option>
+          <option value="kind">按类型</option>
+          <option value="none">不分组</option>
+        </select>
+        <select id="sortBy" aria-label="排序">
+          <option value="found">发现顺序</option>
+          <option value="name">文件名</option>
+          <option value="size">大小</option>
+        </select>
+      </div>
+    </div>
+    <div id="kindFilter" class="kind-filter"></div>
+    <div id="dlStrip" class="dl-strip" hidden>
+      <div class="dl-txt"><b id="dlTitle"></b><span id="dlMeta" class="muted"></span></div>
+      <div class="dl-prog"><i id="dlBar"></i></div>
+      <button id="stopDl" class="btn sm">停止下载</button>
+    </div>
+    <div id="authStrip" class="auth-strip" hidden>
+      <div class="as-txt"><b>登录已失效，下载已暂停</b><span id="authMsg" class="muted"></span></div>
+      <div class="as-act">
+        <button id="authGo" class="btn sm" title="已经在别处重新登录过，直接接着下">直接继续</button>
+        <button id="authLogin" class="btn primary sm">重新登录</button>
+      </div>
+    </div>
+    <div id="list" class="list"></div>
+    <div id="empty" class="empty" hidden></div>
+  </section>
+
+  <section id="intro" class="intro">
+    <ol class="steps">
+      <li><b>粘贴网址</b><span>课程主页、资料索引页、网盘式的文件列表页都行。要登录的平台，点「在浏览器里登录」，在弹出的窗口里自己登录一次。</span></li>
+      <li><b>扫描并挑选</b><span>只列出文件，不会下载。按来源网页 / 类型分组，可筛选、全选、预览 PDF。</span></li>
+      <li><b>下载</b><span>「下载到本机」支持断点续传和自动去重；单个文件点 ↓ 直接存到浏览器；也可以打包成 ZIP。</span></li>
+    </ol>
+    <p class="intro-note">动态网页：Vue / React 单页应用（包括 <code>#/course/42</code> 这种路由）、用 AJAX 加载的文件表格、接口返回的文件列表，都会用无头浏览器渲染后再找，并记下页面调用了哪些接口；页面用 <code>Authorization</code> 之类的请求头取数据时，下载会自动带上同样的凭证。勾上「点击下载按钮」还能抓到 <code>onclick</code> 才出现的文件。</p>
+  </section>
+</main>
+
+<div id="selbar" class="selbar" hidden>
+  <div class="selbar-in">
+    <div class="sel-info"><b id="selCount">0</b> 个已选<span id="selSize" class="muted"></span>
+      <button id="selClear" class="link">清除</button></div>
+    <div class="sel-act">
+      <button id="actCopy" class="btn sm" title="复制所选文件的链接">
+        <svg class="i" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg><span class="hide-s">复制链接</span></button>
+      <button id="actCsv" class="btn sm" title="导出清单（CSV）">
+        <svg class="i" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg><span class="hide-s">导出清单</span></button>
+      <button id="actZip" class="btn sm" title="下载到本机后打包成一个 ZIP">
+        <svg class="i" viewBox="0 0 24 24"><path d="M4 8h16v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M3 4h18v4H3zM10 12h4"/></svg>打包 ZIP</button>
+      <button id="actDl" class="btn primary sm">
+        <svg class="i" viewBox="0 0 24 24"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg>下载到本机</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts" class="toasts" aria-live="polite"></div>
+
+<dialog id="outDlg" class="dlg">
+  <form method="dialog">
+    <h3>保存位置</h3>
+    <p class="muted">「下载到本机」的文件会放在这里，按 站点 / 来源网页标题 / 文件名 分文件夹。</p>
+    <input id="outInput" type="text" spellcheck="false">
+    <div class="dlg-act">
+      <button value="cancel" class="btn sm">取消</button>
+      <button id="outSave" value="ok" class="btn primary sm">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+requests
+beautifulsoup4
+lxml        # 可选，装了解析更快
+flask       # 网页界面 web_app.py

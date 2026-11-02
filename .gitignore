@@ -1,0 +1,11 @@
+.DS_Store
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# 运行产物
+downloads/
+*.log
+manifest.csv
+failed.txt
+cookies*.txt
